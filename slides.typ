@@ -1,8 +1,9 @@
 #import "@preview/touying:0.4.2": *
 #import "@preview/pinit:0.1.4": *
 #import "@preview/xarrow:0.3.0": xarrow
-#import "psi-slides.typ"
 #import "@preview/cetz:0.3.0"
+#import "psi-slides.typ"
+
 
 #let cetz-canvas = touying-reducer.with(reduce: cetz.canvas, cover: cetz.draw.hide.with(bounds: true))
 
@@ -12,7 +13,7 @@
 #let s = (s.methods.info)(
   self: s,
   title: [Koopmans functionals],
-  subtitle: [Baking knowledge of localized charged excitations into DFT],
+  subtitle: [Baking localised charged excitation energies into DFT],
   author: [Edward Linscott],
   date: datetime(year: 2024, month: 11, day: 7),
   location: [CECAM Workshop on Excited States],
@@ -25,7 +26,6 @@
 #set footnote.entry(clearance: 0em)
 #show bibliography: set text(0.6em)
 
-
 #let (init, slides) = utils.methods(s)
 #show: init
 
@@ -36,19 +36,23 @@
 == Outline
 Koopmans functionals: a correction to DFT tailored to improve spectral properties
 
+#pause
+
 - Theory
   - what physical conditions motivate these functionals?
-  - what key approximations underpins them?
+  - what key approximations underpins them? #pause
 - Results
-  - what sort of accuracy can these functionals achieve?
+  - what sort of accuracy can these functionals achieve? #pause
 - Extensions
   - where can we employ machine learning to speed up these calculations?
   - what do we need to do to go beyond charged excitations?
-  - how can we make these calculations accessible?
+  - how can we make these calculations accessible? #pause
 - Open questions
-  - what don't we understand?
+  - what don't we understand? #pause
 
-== Koopmans functional basics
+= Theory
+
+== Total energy differences vs. eigenvalues
 
 We all know that DFT underestimates the band gap. But why?
 
@@ -136,7 +140,7 @@ cetz.canvas({
 }),
 [$N$-electron solution],
 [what we'd like to evaluate],
-[what we can evaluate]
+[what we can quickly evaluate]
 
 ))
 
@@ -147,112 +151,189 @@ $
   E^"DFT" [rho]
   \ & +
   sum_i {
-    - (E^"DFT" [rho] - E[rho^(f_i arrow.r 0)])
+    - (E^"DFT" [rho] - E^"DFT"[rho^(f_i arrow.r 0)])
     + f_i (E^"DFT" [rho^(f_i arrow.r 1)] - E^"DFT" [rho^(f_i arrow.r 0)])
   }
   \ approx & 
   E^"DFT" [rho]
   \ & +
   sum_i alpha_i {
-    - (E^"DFT" [rho] - E[rho - rho_i])
+    - (E^"DFT" [rho] - E^"DFT"[rho - rho_i])
     + f_i (E^"DFT" [rho - rho_i + n_i] - E^"DFT" [rho - rho_i])
   }
 $
 
-and
-$H^"KI"_(i j) = angle.l phi_j|hat(h)^"DFT" + alpha_i hat(v)_i^"KI"|phi_i angle.r$
-where for _e.g._ occupied orbitals $ hat(v)^"KI"|phi_i angle.r = - E_"Hxc" [rho - n_i] + E_"Hxc" [rho] - integral v_"Hxc" (bold(r)', [rho]) n_i d bold(r)' $
+==
+
+$ H^"KI"_(i j) = angle.l phi_j|hat(h)^"DFT" + alpha_i hat(v)_i^"KI"|phi_i angle.r $
+For _e.g._ occupied orbitals $ hat(v)^"KI"_i = - E_"Hxc" [rho - n_i] + E_"Hxc" [rho] - integral v_"Hxc" (bold(r)', [rho]) n_i d bold(r)' $
 
 == Screening
 
-Construct $alpha$ from explicit $Delta$SCF calculations:
+Construct $alpha_i$ from explicit $Delta$SCF calculations@Nguyen2018@DeGennaro2022a
 
-$ alpha_i = () / () $
+$
+  alpha_i = alpha_i^0 (Delta E_i - lambda_(i i)(0)) / (lambda_(i i)(alpha^0) - lambda_(i i)(0)) "where" lambda_(i i)(alpha) = angle.l phi_i|hat(h)^"DFT" + alpha hat(v)_i^"KI"|phi_i angle.r $
 
-or, more efficiently, the same quantity via linear response:
+Recast via linear response@Colonna2018:
 
 $
   alpha_i = (angle.l n_i mid(|) epsilon^(-1) f_"Hxc" mid(|) n_i angle.r) / (angle.l n_i mid(|) f_"Hxc" mid(|) n_i angle.r)
 $
 
-which can be efficiently computed via DFPT.
+which can be efficiently computed via DFPT@Colonna2022 #pause ... but is still the bulk of the computational cost (can use machine-learning)
 
-Will discuss later now we can use machine-learning to speed this up
+#slide[
+#align(center + horizon, 
+  image("figures/fig_pwl.png", height: 100%)
+)
+]
+
+== Issues with extended systems
+
+#align(center + horizon, 
+  image("figures/fig_nguyen_scaling.png", width: 60%)
+)
+
+#pause
+One cell: $E(N + delta N) - E(N)$ #pause; all cells: $Delta E = 1 / (delta N) (E(N + delta N) - E(N)) = (d E)/ (d N) = - epsilon_(H O)$@Nguyen2018
+
+== Issues with extended systems
+
+#align(center + horizon, 
+  image("figures/fig_nguyen_scaling.png", width: 60%)
+)
+
+Two options: #pause _1._ use a more advanced functional#pause, or _2._ stay in the "safe" region
 
 == Orbital-density dependence
-- minimisation gives rise to localised orbitals, so we want to first Wannierise to initialise (or even define) these orbitals #pause
+The potential is orbital-dependent!
+  $ v^"KI"_(i in"occ") = - E_"Hxc" [rho - n_i] + E_"Hxc" [rho] - integral v_"Hxc" (bold(r)', [rho]) n_i d bold(r)' $
 
-== A powerful tool for computational spectroscopy
+#pause
 
-#grid(
-  columns: (4fr, 1fr, 2fr, 1fr),
-  rows: (auto, auto, auto, auto),
-  align: (horizon + right, horizon + left, horizon + right, horizon + left),
-  gutter: 1em,
-  grid.cell(image("figures/colonna_2019_gw100_ip.jpeg", height: 30%)),
-  text("ionisation potentials", size: 0.8em) + cite(<Colonna2019>),
-  grid.cell(image("figures/fig_nguyen_prx_bandgaps.png", height: 30%)),
-  text("band gaps", size: 0.8em) + cite(<Nguyen2018>),
-  grid.cell(image("figures/fig_nguyen_prl_spectra.png", height: 25%)),
-  text("photoemission spectra", size: 0.8em) + cite(<Nguyen2015>),
-  grid.cell(image("figures/marrazzo_CsPbBr3_bands.svg", height: 30%)),
-  text("spin-orbit coupling", size: 0.8em) + cite(<Marrazzo2024>),
+#align(center,
+  grid(columns: 2,
+  image("figures/fig_nguyen_variational_orbital.png", width: 90%),
+  image("figures/fig_nguyen_canonical_orbital.png", width: 90%),
+  [two variational orbitals],
+  [a canonical orbital],
+  )
 )
 
-
-==
-#align(center, image(width: 50%, "figures/koopmans_grey_on_transparent.png"))
-
-An ongoing effort to make Koopmans functional calculations straightforward for non-experts@Linscott2023
-
-- easy installation
-- automated workflows
-- minimal input required of the user
-
-For more details, go to `koopmans-functionals.org`
-
-#matrix-slide(title: "Making Koopmans functionals accessible")[
-  #image("figures/black_box_filled_square.png")
-][
-
-  + #pause automated Wannerisation #pause
-  + calculating the screening parameters via machine learning #pause
-  + integration with `AiiDA`
-]
-
-= Automated Wannierisation
-
-== The key ingredients of automated Wannierisation
-
-#grid(
-  columns: (2fr, 2fr, 3fr),
-  align: center + horizon,
-  gutter: 1em,
-  image("figures/proj_disentanglement_fig1a.png", height: 60%),
-  image("figures/new_projs.png", height: 60%),
-  image("figures/target_manifolds_fig1b.png", height: 60%),
-
-  text("projectability-based disentanglement") + cite(<Qiao2023>),
-  text("use PAOs found in pseudopotentials"),
-  text("parallel transport to separate manifolds") + cite(<Qiao2023a>),
-)
-
-== Example 1: TiO#sub[2]
-#grid(
-  columns: (1fr, 1fr),
-  align: center + horizon,
-  gutter: 1em,
-  image("figures/TiO2_wannierize_bandstructure.png", height: 80%),
-  text(size: 0.6em, raw(read("scripts/tio2.json"), block: true, lang: "json")),
-)
-
-== Example 2: LiF
 #slide[
-  #image("figures/default.png", height: 80%)
-][
-  #uncover("2-", image("figures/Li_only.png", height: 80%))
+  Because we have an ODD...
+- #pause minimisation gives rise to localised orbitals, so we can use MLWFs@Marzari2012
+- we know $hat(H)|phi_i angle.r$ but we don't know $hat(H)$ #pause
+- we have a natural generalisation of DFT in the direction of spectral functional theory@Ferretti2014
 ]
 
+== A brief summary
+$
+  E^"KI"_bold(alpha) [rho, {rho_i}] =
+  E^"DFT" [rho] +
+  sum_i alpha_i { &
+    - (E^"DFT" [rho] - E^"DFT"[rho - rho_i])
+  \ &
+    + f_i (E^"DFT" [rho - rho_i + n_i] - E^"DFT" [rho - rho_i])
+  }
+$
+
+- an orbital-by-orbital correction to DFT
+- localised charge excitations baked into derivatives
+- total energy unchanged!
+- screening parameters
+- orbital-density-dependence
+= Results
+
+== Molecular systems
+
+=== Ionisation potentials@Colonna2019
+#align(center + horizon,
+image("figures/colonna_2019_gw100_ip.jpeg", width: 100%)
+)
+
+=== UV photoemission spectra@Nguyen2015
+#align(center + horizon,
+image("figures/fig_nguyen_prl_spectra.png", width: 100%)
+)
+
+
+== Extended systems
+#slide[
+=== Prototypical semiconductors and insulators @Nguyen2018
+
+#show table.cell: it => {
+  if it.x == 3 or it.x == 4 {
+    set text(fill: s.colors.primary, weight: "semibold")
+    it
+  } else {
+    it
+  }
+}
+
+#grid(align: center + horizon, columns: 2, column-gutter: 1em,
+image("figures/fig_nguyen_prx_bandgaps.png", height: 80%),
+table(columns: (auto, 1fr, 1fr, 1fr, 1fr, 1fr), inset: 0.5em, stroke: none,
+table.header([], [PBE], [G#sub[0]W#sub[0]], [KI], [KIPZ], [QSGW̃]),
+table.hline(),
+[$E_"gap"$], [2.54], [0.56], [0.27], [0.22], [0.18],
+[IP], [1.09], [0.39], [0.19], [0.21], [0.49]
+))
+  
+]
+
+#slide[
+=== ZnO @Colonna2022
+#v(-1em)
+#align(center + horizon,
+grid(align: center + horizon, columns: 3, column-gutter: 1em,
+image("figures/ZnO_lda_cropped.png", height: 80%),
+image("figures/ZnO_hse_cropped_noaxis.png", height: 80%),
+image("figures/ZnO_ki_cropped_noaxis.png", height: 80%),
+))
+]
+
+#slide[
+=== ZnO @Colonna2022
+#table(columns: (auto, 1fr, 1fr, 1fr, 1fr, 1fr, 1.5fr), inset: 0.5em, stroke: none,
+table.header([], [LDA ], [HSE ], [GW#sub[0] ], [scGW̃ ], [KI ], [exp ]),
+table.hline(),
+[$E_"gap"$], [0.79], [2.79], [3.0], [3.2], [3.68], [3.60],
+[$angle.l epsilon_d angle.r$], [-5.1], [-6.1], [-6.4], [-6.7], [-6.9], [-7.5 to -8.81 ],
+[$Delta$], [4.15], [], [], [], [4.99], [5.3]
+)
+  
+]
+
+=== Spin-orbit coupling@Marrazzo2024
+#align(center + horizon,
+image("figures/marrazzo_CsPbBr3_bands.svg", height: 80%)
+)
+
+== Model systems
+=== Hooke's atom@Schubert2023
+
+#align(center + horizon, 
+  image("figures/schubert_vxc.jpeg", height: 85%)
+)
+
+= Caveats
+
+== Limitations
+
+- only valid for systems with $E_"gap"$ > 0 #pause
+- empty state localisation in the bulk limit #pause
+- can break crystal point group symmetry
+
+== Resonance with other efforts
+
+- Wannier transition state method of Anisimov and Kozhevnikov@Anisimov2005
+- Optimally-tunded range-separated hybrid functionals of Kronik, Pasquarello, and others@Kronik2012@Wing2021
+- Ensemble DFT of Kraisler and Kronik@Kraisler2013
+- Koopmans-Wannier method of Wang and co-workers@Ma2016
+- Dielectric-dependent hybrid functionals of Galli and co-workers@Skone2016a
+- Scaling corrections of Yang and co-workers@Li2018
 
 = Electronic screening via machine learning
 
@@ -261,7 +342,7 @@ For more details, go to `koopmans-functionals.org`
 A key ingredient of Koopmans functional calculations are the screening parameters:
 
 $
-  alpha_i = (angle.l n_i mid(|) epsilon^(-1) f_"Hxc" mid(|) n_i angle.r) / (angle.l n_i mid(|) f_"Hxc" mid(|) n_i angle.r)
+  alpha_i = (angle.l n_i|epsilon^(-1) f_"Hxc"|n_i angle.r) / (angle.l n_i|f_"Hxc"|n_i angle.r)
 $
 
 #pause
@@ -360,25 +441,57 @@ $
   #blcite(<Schubert2024>)
 ]
 
-= Integration with `AiiDA`
+= Going beyond single-particle excitations (preliminary)
 
-== Integration with `AiiDA`
+The idea: solve the BSE, skipping GW and instead using Koopmans eigenvalues@Lautenschlager1987@Sottile2003
 
-Work has begun to interface `koopmans` with `AiiDA`, which would allow for...
-#pause
+#align(center + horizon,
+grid(columns: 2, image("figures/si_ki_vs_gw.png", height: 70%),
+image("figures/si_literature_spectra.png", height: 70%))
+)
 
-- remote execution #pause
-- parallel execution #pause
-- making use of `AiiDA`'s workflows #pause
-- deployment as a GUI (see Miki Bonacci's talk immediately after this one)
+N.B. using DFT response
 
-#pause
+= Making Koopmans functionals accessible
 
-The strategy we are employing...
-- requires a moderate amount of refactoring #pause
-- will not change `koopmans`' user interface #pause
+== The general workflow
 
-Watch this space!
+#image("figures/supercell_workflow.png", width: 100%)
+
+#image("figures/primitive_workflow.png", width: 65.5%)
+
+== 
+
+Because we have...
+- bespoke code
+- complicated workflows
+
+then...
+- there is lots of scope for human error
+- reproducibility becomes difficult
+- expert knowledge required
+
+==
+#align(center, image(width: 50%, "figures/koopmans_grey_on_transparent.png"))
+
+An ongoing effort to make Koopmans functional calculations straightforward for non-experts@Linscott2023
+
+- easy installation
+- automated workflows
+- minimal input required of the user
+
+For more details, go to `koopmans-functionals.org`
+
+#matrix-slide(title: "Making Koopmans functionals accessible")[
+  #image("figures/black_box_filled_square.png")
+][
+ 
+  + scriptable with `python`
+
+  + #pause automated Wannerisation #pause
+
+  + integration with `AiiDA`@Huber2020
+]
 
 = Summary
 
@@ -388,32 +501,43 @@ Watch this space!
   gutter: 1em,
   image("figures/black_box_filled_square.png", width: 100%),
   text[
-    Koopmans functionals are
-    - a powerful tool for computational spectroscopy, and
-    - are increasingly user-friendly:
-      - Wannierisation is more black-box @Qiao2023@Qiao2023a
-      - machine learning can be used to calculate the screening parameters @Schubert2024
-      - parallel and remote execution with `AiiDA` is on the horizon
-      - GUI development is also underway (up next!)
+    Koopmans functionals
+    - bake localised charged excitation energies into DFT
+    - give band structures with comparable accuracy to state-of-the-art GW
+    - machine learning can be used to calculate the screening parameters @Schubert2024
+    - can be used in place of GW in BSE calculation of excitons
+    - is available in the easy-to-use package `koopmans`
   ],
 )
+
+== Open questions
+
+- why does correcting _local_ charged excitations correct the description of delocalized excitations?
+- is there a good metric for selecting variational orbitals (_i.e._ the subspace with respect to which we enforce piecewise linearity)?
+- are off-diagonal corrections appropriate? What form should they take?
+- how to extend to metallic systems?
+- can we provide a formal basis for the Koopmans correction?
+  - GKS
+  - spectral functional theory@Ferretti2014
+  - ensemble DFT
+  - RDMFT
 
 == Acknowledgements
 #align(
   center,
   grid(
-    columns: 5,
+    columns: 4,
     align: horizon + center,
     gutter: 1em,
-    image("media/mugshots/nicola_marzari.jpg", height: 45%),
+    image("media/mugshots/nicola_marzari.jpeg", height: 45%),
     image("media/mugshots/nicola_colonna.png", height: 45%),
-    image("media/mugshots/junfeng_qiao.jpeg", height: 45%),
+    // image("media/mugshots/junfeng_qiao.jpeg", height: 45%),
     image("media/mugshots/yannick_schubert.jpg", height: 45%),
     image("media/mugshots/miki_bonacci.jpg", height: 45%),
 
     text("Nicola Marzari"),
     text("Nicola Colonna"),
-    text("Junfeng Qiao"),
+    // text("Junfeng Qiao"),
     text("Yannick Schubert"),
     text("Miki Bonacci"),
   ),
@@ -431,6 +555,87 @@ Watch this space!
 )
 
 = Spare slides
+
+#matrix-slide(title: "Calculating screening parameters via SCF", columns: (1fr, 1fr))[
+#align(center + horizon,
+  {only("1")[#image("figures/alpha_calc/fig_alpha_calc_step_0.png", height: 100%)]
+  only("2")[#image("figures/alpha_calc/fig_alpha_calc_step_1.png", height: 100%)]
+  only("3")[#image("figures/alpha_calc/fig_alpha_calc_step_2.png", height: 100%)]
+  only("4-5")[#image("figures/alpha_calc/fig_alpha_calc_step_3.png", height: 100%)]
+  only("6-7")[#image("figures/alpha_calc/fig_alpha_calc_step_4.png", height: 100%)]
+  }
+)
+][
+#only("7")[$ alpha_i = alpha_i^0 (Delta E_i - lambda_(i i)(0)) / (lambda_(i i)(alpha^0) - lambda_(i i)(0)) $
+$ lambda_(i i)(alpha) = angle.l phi_i|hat(h)^"DFT" + alpha hat(v)_i^"KI"|phi_i angle.r $]
+]
+
+== The key ingredients of automated Wannierisation
+
+#grid(
+  columns: (2fr, 2fr, 3fr),
+  align: center + horizon,
+  gutter: 1em,
+  image("figures/proj_disentanglement_fig1a.png", height: 60%),
+  image("figures/new_projs.png", height: 60%),
+  image("figures/target_manifolds_fig1b.png", height: 60%),
+
+  text("projectability-based disentanglement") + cite(<Qiao2023>),
+  text("use PAOs found in pseudopotentials"),
+  text("parallel transport to separate manifolds") + cite(<Qiao2023a>),
+)
+
+== Connections with approximate self-energies@Ferretti2014@Colonna2019
+
+Orbital-density functional theory:
+
+$ (h + alpha_i v^(K I)_i)|psi_i angle.r = lambda_i|psi_i angle.r $ $v_i^(K I)(bold(r))$ is real, local, and state-dependent #pause
+
+cf. Green's function theory:
+
+$ (h + Sigma_i)|psi_i angle.r = z_i|psi_i angle.r $ $Sigma_i (bold(r), bold(r)')$ is complex, non-local, and state-dependent
+
+#slide[
+Hartree-Fock self-energy in localized representation
+
+$Sigma_x (bold(r), bold(r)') = - sum_(k sigma)^("occ") psi_(k sigma)(bold(r)) & f_H (bold(r), bold(r'))psi^*_(k sigma)(bold(r)') \
+& arrow.r.double.long angle.l phi_(i sigma)|Sigma_x|phi_(j sigma') angle.r approx - angle.l phi_(i sigma)|v_H [n_(i sigma)]|phi_(i sigma)angle.r delta_(i j)delta_(sigma sigma')$
+
+Unscreened KIPZ#sym.at Hartree ($v_"xc" arrow.r 0$; $f_"Hxc" arrow.r f_H$; $epsilon^(-1) arrow.r 1$)
+
+$angle.l phi_(i sigma)|v^"KIPZ"_(j sigma',"xc")|phi_(j sigma') angle.r
+approx {(1/2 - f_(i sigma)) angle.l n_(i sigma)|f_H|n_(i sigma) angle.r - E_H [n_(i sigma)]}
+approx - angle.l phi_(i sigma)|v_H [n_(i sigma)]|phi_(i sigma)angle.r delta_(i j)delta_(sigma sigma')$
+
+]
+
+#slide[
+Screened exchange plus Coulomb hole (COHSEX)
+
+$ Sigma^"SEX"_"xc" (bold(s), bold(s)') = - sum_(k sigma)^"occ" psi_(k sigma)(bold(r)) psi_(k sigma)^*(bold(r)) W(bold(r), bold(r)') $
+
+$ Sigma^"COH"_"xc" (bold(s), bold(s)') = 1/2 delta(bold(s), bold(s)'){W(bold(r), bold(r)') - f_H (bold(r), bold(r)')} $
+
+$ arrow.r.double.long angle.l phi_(i sigma)|Sigma^"COHSEX"_"xc"|phi_(j sigma')angle.r approx {(1/2 - f_(i sigma)) angle.l n_(i sigma)|W|n_(i sigma)angle.r - E_H [n_(i sigma)]}delta_(i j) delta_(sigma sigma')$
+
+KIPZ#sym.at Hartree with RPA screening ($v_"xc" arrow.r 0$; $f_"Hxc" arrow.r f_H$; $epsilon^(-1) arrow.r "RPA"$)
+
+$ angle.l phi_(i sigma)|v^"KIPZ"_(j sigma',"xc")|phi_(j sigma')angle.r approx{(1/2 - f_(i sigma)) angle.l n_(i sigma)|W|n_(i sigma)angle.r - E_H [n_(i sigma)]}delta_(i j) delta_(sigma sigma')$
+]
+
+#slide[
+  Static GWΓ#sub[xc] --- local (DFT-based) vertex corrections@Hybertsen1987@DelSole1994
+
+  $ Sigma^(G W Gamma_"xc")_"xc"(1, 2) = i G(1, 2) W_(t-e) (1, 2) $
+  
+  $ W_(t-e) = (1 - f_"Hxc" chi_0)^(-1) f_H $
+
+  $ arrow.r.double.long angle.l phi_(i sigma)|Sigma^(G W Gamma_"xc")_"xc"|phi_(j sigma')angle.r approx{(1/2 - f_(i sigma)) angle.l n_(i sigma)|W_(t-e)|n_(i sigma)angle.r - E_H [n_(i sigma)]}delta_(i j) delta_(sigma sigma')$
+
+  KIPZ#sym.at DFT ($v_"xc" arrow.r$ DFT; $f_"Hxc" arrow.r$ DFT; $epsilon^(-1) arrow.r$ DFT)
+
+  $ angle.l phi_(i sigma)|v^"KIPZ"_(j sigma',"xc")|phi_(j sigma')angle.r approx{angle.l phi_(i sigma)|v^"DFT"_(sigma,"xc")|phi_(i sigma)angle.r + (1/2 - f_(i sigma)) angle.l n_(i sigma)|epsilon^(-1)_(t-e) f_"Hxc"|n_(i sigma)angle.r - E_H [n_(i sigma)]}delta_(i j) delta_(sigma sigma')$
+]
 
 == References
 #bibliography("references.bib")

@@ -123,6 +123,7 @@
       inset: 2em,
       width: 100%,
       text(
+        size: 0.7em,
         fill: self.colors.neutral-lightest,
         utils.call-or-display(self, self.uni-footer),
       ),
