@@ -52,9 +52,17 @@ Koopmans functionals: a correction to DFT tailored to improve spectral propertie
 = Theory
 
 #matrix-slide(title: "Spectral properties")[
-  #image("figures/arpes.png", height: 100%)
+  #v(-2em)
+  #image("figures/arpes.png", height: 95%)
+  
+  #v(-1em)
+  @DeLaTorre2021
 ][
-  #image("figures/puppin.png", height: 100%)
+  #v(-2em)
+  #image("figures/puppin.png", height: 95%)
+  
+  #v(-1em)
+  @Puppin2020
 ]
 
 == ... with a functional theory?
@@ -258,7 +266,8 @@ $ H^"KI"_(i j) = angle.l phi_j|hat(h)^"DFT" + alpha_i hat(v)_i^"KI"|phi_i angle.
 )
 
 #pause
-One cell: $E(N + delta N) - E(N)$ #pause; all cells: $Delta E = 1 / (delta N) (E(N + delta N) - E(N)) = (d E)/ (d N) = - epsilon_(H O)$@Nguyen2018
+One cell $E(N + delta N) - E(N)$#pause//
+; all cells $Delta E = 1 / (delta N) (E(N + delta N) - E(N)) = (d E)/ (d N) = - epsilon_(H O)$@Nguyen2018
 
 == Issues with extended systems
 
