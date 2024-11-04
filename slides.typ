@@ -33,38 +33,43 @@
 #show: slides
 
 
-== Outline
 Koopmans functionals: a correction to DFT tailored to improve spectral properties
 
 #pause
 
 - Theory
   - what physical conditions motivate these functionals?
-  - what key approximations underpins them? #pause
+  - what approximations do we make? #pause
 - Results
   - what sort of accuracy can these functionals achieve? #pause
 - Extensions
   - where can we employ machine learning to speed up these calculations?
-  - what do we need to do to go beyond charged excitations?
-  - how can we make these calculations accessible? #pause
+  - what do we need to do to go beyond single-particle excitations?
+  - what have we done to make these functionals accessible? #pause
 - Open questions
   - what don't we understand? #pause
 
 = Theory
 
-== Total energy differences vs. eigenvalues
+#matrix-slide(title: "Spectral properties")[
+  #image("figures/arpes.png", height: 100%)
+][
+  #image("figures/puppin.png", height: 100%)
+]
 
-We all know that DFT underestimates the band gap. But why?
+== ... with a functional theory?
+
+We all know that DFT underestimates the band gap. But why? #pause
 
 The exact Green's function has poles that correspond to total energy differences
 
 $
   ε_i = cases(E(N) - E_i (N-1) & "if" i in "occ", E_i (N+1) - E(N) & "if" i in "emp")
-$
+$ #pause
 
 but DFT does #emph[not]
 
-#focus-slide()[Core idea: impose this condition to DFT to improve its description of spectral properties]
+#focus-slide()[Core idea: impose this equivalence to DFT and thereby improve its description of spectral properties]
 
 #matrix-slide()[
   Formally, every orbital $i$ should have an eigenenergy
@@ -74,10 +79,11 @@ but DFT does #emph[not]
     ⟩ = frac(dif E, dif f_i)
   $
   that is
-  - independent of $f_i$
-  - equal to $Delta E$ of explicit electron addition/removal
+  - #pause independent of $f_i$
+  - #pause equal to $Delta E$ of explicit electron addition/removal
 ][
-  #image(width: 100%, "figures/fig_en_curve_gradients_zoom.svg")
+  #pause
+  #image(width: 100%, "figures/fig_en_curve_gradients_zoom_2.png")
 ]
 #matrix-slide(columns: (1fr, 1fr))[
 
@@ -95,7 +101,7 @@ $
 Bakes the total energy differences $E^"DFT" [rho^(f_i arrow.r 1)] - E^"DFT" [rho^(f_i arrow.r 0)]$ into the functional
 
 ][
-  #image(width: 100%, "figures/fig_en_curve_gradients_zoom.svg")
+  #image(width: 100%, "figures/fig_en_curve_gradients_zoom_2.png")
 ]
 
 == 
@@ -113,16 +119,17 @@ Bakes the total energy differences $E^"DFT" [rho^(f_i arrow.r 1)] - E^"DFT" [rho
 // $
 //   E[rho^(f_i arrow.r f)] approx alpha_i E[rho + (f - f_i) |phi^N_i (bold(r))|^2]
 // $
-#align(center + horizon, 
-grid(align: center + horizon, columns: 3, column-gutter: 2cm, row-gutter: 1cm,
-cetz.canvas({
+#matrix-slide(columns: (1fr, 1fr, 1fr))[
+#cetz.canvas({
   import cetz.draw: *
   content((1.25, 1.5), [$rho$])
   circle((0, 0), radius: 1, fill: s.colors.primary, stroke: none)
   circle((2.5, 0), radius: 1, fill: s.colors.primary, stroke: none)
-
-}),
-cetz.canvas({
+})
+$N$-electron solution
+#pause
+][
+#cetz.canvas({
   import cetz.draw: *
 
   content((9, 1.5), [$rho^(f_1 arrow.r 0)$])
@@ -130,20 +137,19 @@ cetz.canvas({
   circle((8, 0), radius: 1, fill: none, stroke: (thickness: 2pt, paint: s.colors.primary))
   circle((8, 0), radius: 1, fill: none, stroke: (dash: "dashed", thickness: 2pt, paint: white))
   // content((8, -1.5), [$f_1 = 0$])
-}),
-cetz.canvas({
+})
+what appears in the functional
+#pause
+][
+#cetz.canvas({
   import cetz.draw: *
 
   content((17.25, 1.5), [$rho - |psi^N_1(r)|^2$])
   circle((16, 0), radius: 1, fill: none, stroke: (dash: "dashed", thickness: 2pt, paint: s.colors.primary))
   circle((18.5, 0), radius: 1, fill: s.colors.primary, stroke: none)
-}),
-[$N$-electron solution],
-[what we'd like to evaluate],
-[what we can quickly evaluate]
-
-))
-
+})
+what we can quickly evaluate
+]
 
 ==
 $
@@ -151,22 +157,46 @@ $
   E^"DFT" [rho]
   \ & +
   sum_i {
-    - (E^"DFT" [rho] - E^"DFT"[rho^(f_i arrow.r 0)])
+    - (E^"DFT" [rho] - E^"DFT" [rho^(f_i arrow.r 0)])
     + f_i (E^"DFT" [rho^(f_i arrow.r 1)] - E^"DFT" [rho^(f_i arrow.r 0)])
   }
   \ approx & 
   E^"DFT" [rho]
   \ & +
   sum_i alpha_i {
-    - (E^"DFT" [rho] - E^"DFT"[rho - rho_i])
+    - (E^"DFT" [rho] - E^"DFT" [rho - rho_i])
     + f_i (E^"DFT" [rho - rho_i + n_i] - E^"DFT" [rho - rho_i])
   }
 $
 
-==
+where $rho_i (bold(r)) = f_i|phi_i (bold(r))|^2 = f_i n_i (bold(r))$
 
-$ H^"KI"_(i j) = angle.l phi_j|hat(h)^"DFT" + alpha_i hat(v)_i^"KI"|phi_i angle.r $
-For _e.g._ occupied orbitals $ hat(v)^"KI"_i = - E_"Hxc" [rho - n_i] + E_"Hxc" [rho] - integral v_"Hxc" (bold(r)', [rho]) n_i d bold(r)' $
+#slide[
+#align(center + horizon, 
+  image("figures/fig_pwl.png", height: 100%)
+)
+]
+
+==
+$
+  E^"KI"_bold(alpha) [rho, {rho_i}] = &
+  E^"DFT" [rho]
+  \ & +
+  sum_i {
+    - (E^"DFT" [rho] - E^"DFT" [rho^(f_i arrow.r 0)])
+    + f_i (E^"DFT" [rho^(f_i arrow.r 1)] - E^"DFT" [rho^(f_i arrow.r 0)])
+  }
+  \ approx & 
+  E^"DFT" [rho]
+  \ & +
+  sum_i alpha_i {
+    - (E^"DFT" [rho] - E^"DFT" [rho - rho_i])
+    + f_i (E^"DFT" [rho - rho_i + n_i] - E^"DFT" [rho - rho_i])
+  }
+$
+
+where $rho_i (bold(r)) = f_i|phi_i (bold(r))|^2 = f_i n_i (bold(r))$
+
 
 == Screening
 
@@ -178,15 +208,47 @@ $
 Recast via linear response@Colonna2018:
 
 $
-  alpha_i = (angle.l n_i mid(|) epsilon^(-1) f_"Hxc" mid(|) n_i angle.r) / (angle.l n_i mid(|) f_"Hxc" mid(|) n_i angle.r)
+  alpha_i = (angle.l n_i|epsilon^(-1) f_"Hxc"|n_i angle.r) / (angle.l n_i|f_"Hxc"|n_i angle.r)
 $
 
 which can be efficiently computed via DFPT@Colonna2022 #pause ... but is still the bulk of the computational cost (can use machine-learning)
 
-#slide[
-#align(center + horizon, 
-  image("figures/fig_pwl.png", height: 100%)
+== Orbital-density dependence
+An orbital-density-dependent energy functional: 
+$
+  E^"KI"_bold(alpha) [rho, {rho_i}] = &
+  E^"DFT" [rho]
+  \ & +
+  sum_i alpha_i {
+    - (E^"DFT" [rho] - E^"DFT" [rho - rho_i])
+    + f_i (E^"DFT" [rho - rho_i + n_i] - E^"DFT" [rho - rho_i])
+  }
+$
+
+#pause
+... and an orbital-dependent potential:
+$ H^"KI"_(i j) = angle.l phi_j|hat(h)^"DFT" + alpha_i hat(v)_i^"KI"|phi_i angle.r $
+
+#pause
+  $ v^"KI"_(i in"occ") = - E_"Hxc" [rho - n_i] + E_"Hxc" [rho] - integral v_"Hxc" (bold(r)', [rho]) n_i (bold(r)') d bold(r)' $
+
+== 
+#pause
+
+#slide(title: "Consequences of ODD")[
+- #pause loss of rotational invariance; minimisation of total energy is more complicated
+- #pause two sets of orbitals:
+#align(center,
+  grid(columns: 2,
+  image("figures/fig_nguyen_variational_orbital.png", width: 80%),
+  image("figures/fig_nguyen_canonical_orbital.png", width:80%),
+  [two variational orbitals],
+  [a canonical orbital],
+  )
 )
+- #pause we can use MLWFs@Marzari2012
+- #pause we know $hat(H)|phi_i angle.r$ but we don't know $hat(H)$ #pause
+- a generalisation of DFT in the direction of spectral functional theory@Ferretti2014
 ]
 
 == Issues with extended systems
@@ -206,44 +268,23 @@ One cell: $E(N + delta N) - E(N)$ #pause; all cells: $Delta E = 1 / (delta N) (E
 
 Two options: #pause _1._ use a more advanced functional#pause, or _2._ stay in the "safe" region
 
-== Orbital-density dependence
-The potential is orbital-dependent!
-  $ v^"KI"_(i in"occ") = - E_"Hxc" [rho - n_i] + E_"Hxc" [rho] - integral v_"Hxc" (bold(r)', [rho]) n_i d bold(r)' $
-
-#pause
-
-#align(center,
-  grid(columns: 2,
-  image("figures/fig_nguyen_variational_orbital.png", width: 90%),
-  image("figures/fig_nguyen_canonical_orbital.png", width: 90%),
-  [two variational orbitals],
-  [a canonical orbital],
-  )
-)
-
-#slide[
-  Because we have an ODD...
-- #pause minimisation gives rise to localised orbitals, so we can use MLWFs@Marzari2012
-- we know $hat(H)|phi_i angle.r$ but we don't know $hat(H)$ #pause
-- we have a natural generalisation of DFT in the direction of spectral functional theory@Ferretti2014
-]
-
 == A brief summary
 $
   E^"KI"_bold(alpha) [rho, {rho_i}] =
   E^"DFT" [rho] +
   sum_i alpha_i { &
-    - (E^"DFT" [rho] - E^"DFT"[rho - rho_i])
+    - (E^"DFT" [rho] - E^"DFT" [rho - rho_i])
   \ &
     + f_i (E^"DFT" [rho - rho_i + n_i] - E^"DFT" [rho - rho_i])
   }
 $
 
-- an orbital-by-orbital correction to DFT
-- localised charge excitations baked into derivatives
+#pause
+- an orbital-by-orbital correction to DFT #pause
+- localised charge excitations baked into derivatives #pause
+- screening parameters #pause
+- orbital-density-dependence #pause
 - total energy unchanged!
-- screening parameters
-- orbital-density-dependence
 = Results
 
 == Molecular systems
@@ -257,7 +298,6 @@ image("figures/colonna_2019_gw100_ip.jpeg", width: 100%)
 #align(center + horizon,
 image("figures/fig_nguyen_prl_spectra.png", width: 100%)
 )
-
 
 == Extended systems
 #slide[
@@ -296,6 +336,14 @@ image("figures/ZnO_ki_cropped_noaxis.png", height: 80%),
 
 #slide[
 === ZnO @Colonna2022
+#show table.cell: it => {
+  if it.x == 5 {
+    set text(fill: s.colors.primary, weight: "semibold")
+    it
+  } else {
+    it
+  }
+}
 #table(columns: (auto, 1fr, 1fr, 1fr, 1fr, 1fr, 1.5fr), inset: 0.5em, stroke: none,
 table.header([], [LDA ], [HSE ], [GW#sub[0] ], [scGW̃ ], [KI ], [exp ]),
 table.hline(),
@@ -307,8 +355,16 @@ table.hline(),
 ]
 
 === Spin-orbit coupling@Marrazzo2024
+
+#v(-3em)
 #align(center + horizon,
-image("figures/marrazzo_CsPbBr3_bands.svg", height: 80%)
+image("figures/marrazzo_CsPbBr3_bands.svg", width: 45%)
+)
+#table(columns: (auto, 1fr, 1fr, 1fr, 1fr, 1fr, 1.5fr), inset: 0.5em, stroke: none,
+table.header([], [LDA ], [HSE ], [G#sub[0]W#sub[0] ], [QSGW̃ ], [KI ], [exp ]),
+table.hline(),
+[without SOC ], [1.40], [2.09], [2.56], [3.15], [3.12], [],
+[with SOC], [0.18], [0.78], [0.94], [1.53], [1.78], [1.85],
 )
 
 == Model systems
@@ -329,7 +385,7 @@ image("figures/marrazzo_CsPbBr3_bands.svg", height: 80%)
 == Resonance with other efforts
 
 - Wannier transition state method of Anisimov and Kozhevnikov@Anisimov2005
-- Optimally-tunded range-separated hybrid functionals of Kronik, Pasquarello, and others@Kronik2012@Wing2021
+- Optimally-tuned range-separated hybrid functionals of Kronik, Pasquarello, and others@Kronik2012@Wing2021
 - Ensemble DFT of Kraisler and Kronik@Kraisler2013
 - Koopmans-Wannier method of Wang and co-workers@Ma2016
 - Dielectric-dependent hybrid functionals of Galli and co-workers@Skone2016a
@@ -441,6 +497,10 @@ $
   #blcite(<Schubert2024>)
 ]
 
+#focus-slide[
+Takeaway: predicting electronic response can be done efficiently with frozen-orbital approximations and machine learning
+]
+
 = Going beyond single-particle excitations (preliminary)
 
 The idea: solve the BSE, skipping GW and instead using Koopmans eigenvalues@Lautenschlager1987@Sottile2003
@@ -496,16 +556,16 @@ For more details, go to `koopmans-functionals.org`
 = Summary
 
 == Summary
-#grid(
+#matrix-slide(
   columns: (1fr, 2fr),
   gutter: 1em,
-  image("figures/black_box_filled_square.png", width: 100%),
+  image("figures/fig_nguyen_prx_bandgaps.png", width: 100%),
   text[
-    Koopmans functionals
-    - bake localised charged excitation energies into DFT
-    - give band structures with comparable accuracy to state-of-the-art GW
-    - machine learning can be used to calculate the screening parameters @Schubert2024
-    - can be used in place of GW in BSE calculation of excitons
+    Koopmans functionals...
+    - bake localised charged excitation energies into DFT #pause
+    - give band structures with comparable accuracy to state-of-the-art GW #pause
+    - machine learning can be used to calculate the screening parameters @Schubert2024 #pause
+    - can be used in place of GW in BSE calculation of excitons #pause
     - is available in the easy-to-use package `koopmans`
   ],
 )
